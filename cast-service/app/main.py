@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from app.api.casts import casts
-from app.api.db import metadata, database, engine
+from .api.casts import casts
+from .api.db import metadata, database, engine
 
 metadata.create_all(engine)
 

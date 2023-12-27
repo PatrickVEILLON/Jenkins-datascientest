@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movie-service
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: movie-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: movie-service
+    spec:
+      containers:
+      - name: movie-service
+        image: patrick35/movie-service:20231226
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            cpu: 1
+          requests:
+            cpu: 0.5

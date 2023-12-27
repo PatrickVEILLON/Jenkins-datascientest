@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cast-db
+  namespace: staging
+spec:
+  selector:
+    matchLabels:
+      app: cast-db
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cast-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:12.1-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: "admin"
+        - name: POSTGRES_PASSWORD
+          value: "pass"
+        - name: POSTGRES_DB
+          value: "cast_db_staging"

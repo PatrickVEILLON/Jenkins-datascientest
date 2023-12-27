@@ -1,0 +1,4 @@
+apiVersion: v2
+name: jenkins-devops-exams
+description: Helm Chart pour l'application Jenkins DevOps Exams
+version: 0.1.0
