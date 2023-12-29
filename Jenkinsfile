@@ -7,15 +7,15 @@ pipeline {
     agent any
 
     stages {
-        stage('Docker Build and Test') {
+        stage('Docker Build') {
             steps {
                 script {
                     sh 'docker rm -f jenkins || true'
                     sh "docker build -t $DOCKER_ID/$DOCKER_IMAGE:$DOCKER_TAG ."
+                    sleep 6
                 }
             }
         }
-
         stage('Docker Run') {
             steps {
                 script {
@@ -33,7 +33,6 @@ pipeline {
                 }
             }
         }
-
         stage('Docker Push') {
             environment {
                 DOCKER_PASS = credentials("DOCKER_HUB_PASS")
@@ -46,7 +45,7 @@ pipeline {
             }
         }
 
-        stage('Deploiement en dev/staging/prod') {
+        stage('Deploiement en dev') {
             environment {
                 KUBECONFIG = credentials("config")
             }
@@ -58,7 +57,37 @@ pipeline {
                     sh 'cp fastapi/values.yaml values.yml'
                     sh "sed -i 's+tag.*+tag: ${DOCKER_TAG}+g' values.yml"
                     sh 'helm upgrade --install app fastapi --values=values.yml --namespace dev'
+                }
+            }
+        }
+
+        stage('Deploiement en staging') {
+            environment {
+                KUBECONFIG = credentials("config")
+            }
+            steps {
+                script {
+                    sh 'rm -Rf .kube || true'
+                    sh 'mkdir .kube'
+                    sh 'cat $KUBECONFIG > .kube/config'
+                    sh 'cp fastapi/values.yaml values.yml'
+                    sh "sed -i 's+tag.*+tag: ${DOCKER_TAG}+g' values.yml"
                     sh 'helm upgrade --install app fastapi --values=values.yml --namespace staging'
+                }
+            }
+        }
+
+        stage('Deploiement en prod') {
+            environment {
+                KUBECONFIG = credentials("config")
+            }
+            steps {
+                script {
+                    sh 'rm -Rf .kube || true'
+                    sh 'mkdir .kube'
+                    sh 'cat $KUBECONFIG > .kube/config'
+                    sh 'cp fastapi/values.yaml values.yml'
+                    sh "sed -i 's+tag.*+tag: ${DOCKER_TAG}+g' values.yml"
                     sh 'helm upgrade --install app fastapi --values=values.yml --namespace prod'
                 }
             }
