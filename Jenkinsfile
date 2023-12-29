@@ -69,8 +69,8 @@ pipeline {
                     rm -Rf .kube
                     mkdir .kube
                     echo $KUBECONFIG > .kube/config
-                    cp cast-service/values.yaml cast-values.yml
-                    cp movie-service/values.yaml movie-values.yml
+                    cp ../kubernetes/HELM/values.yaml cast-values.yml
+                    cp ../kubernetes/HELM/values.yaml movie-values.yml
                     sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" cast-values.yml
                     sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" movie-values.yml
                     helm upgrade --install cast-service cast-service --values=cast-values.yml --namespace dev
@@ -87,8 +87,8 @@ pipeline {
                     rm -Rf .kube
                     mkdir .kube
                     echo $KUBECONFIG > .kube/config
-                    cp cast-service/values.yaml cast-values.yml
-                    cp movie-service/values.yaml movie-values.yml
+                    cp ../kubernetes/HELM/values.yaml cast-values.yml
+                    cp ../kubernetes/HELM/values.yaml movie-values.yml
                     sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" cast-values.yml
                     sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" movie-values.yml
                     helm upgrade --install cast-service cast-service --values=cast-values.yml --namespace staging
@@ -105,15 +105,9 @@ pipeline {
                     rm -Rf .kube
                     mkdir .kube
                     echo $KUBECONFIG > .kube/config
-                    cp cast-service/values.yaml cast-values.yml
-                    cp movie-service/values.yaml movie-values.yml
+                    cp ../kubernetes/HELM/values.yaml cast-values.yml
+                    cp ../kubernetes/HELM/values.yaml movie-values.yml
                     sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" cast-values.yml
                     sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" movie-values.yml
                     helm upgrade --install cast-service cast-service --values=cast-values.yml --namespace prod
-                    helm upgrade --install movie-service movie-service --values=movie-values.yml --namespace prod
-                    '''
-                }
-            }
-        }
-    }
-}
+                    helm upgrade --install movie-service movie-service --values=movie-values
