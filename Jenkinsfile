@@ -6,30 +6,28 @@ pipeline {
         KUBECONFIG = credentials("config")
     }
     agent any 
-   
-   stage('Build and Test cast-service') { 
-    steps {
-        script {
-            dir('cast-service') {
-                // Vérifier si le conteneur existe et le supprimer si nécessaire
-                sh 'docker rm -f cast-service-test || true'
-                sh 'docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:v.${BUILD_ID}.0 .'
-                sh 'docker run -d -p 8000:8080 --name cast-service-test $DOCKER_ID/$DOCKER_IMAGE_CAST:v.${BUILD_ID}.0'
-                sh 'sleep 10'
-                sh 'curl localhost:8080/api/v1/casts'
-                sh 'docker rm -f cast-service-test'
+
+    stages {
+        stage('Build and Test cast-service') { 
+            steps {
+                script {
+                    dir('cast-service') {
+                        sh 'docker rm -f cast-service-test || true'
+                        sh 'docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:v.${BUILD_ID}.0 .'
+                        sh 'docker run -d -p 8000:8080 --name cast-service-test $DOCKER_ID/$DOCKER_IMAGE_CAST:v.${BUILD_ID}.0'
+                        sh 'sleep 10'
+                        sh 'curl localhost:8080/api/v1/casts'
+                        sh 'docker rm -f cast-service-test'
+                    }
+                }
             }
         }
-    }
-}
- 
 
         stage('Build and Test movie-service') { 
             steps {
                 script {
                     dir('movie-service') {
-                        // Vérifier si le conteneur existe et le supprimer si nécessaire
-                        sh 'docker rm -f cast-service-test || true'
+                        sh 'docker rm -f movie-service-test || true'
                         sh 'docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:v.${BUILD_ID}.0 .'
                         sh 'docker run -d -p 8000:8080 --name movie-service-test $DOCKER_ID/$DOCKER_IMAGE_MOVIE:v.${BUILD_ID}.0'
                         sh 'sleep 10'
