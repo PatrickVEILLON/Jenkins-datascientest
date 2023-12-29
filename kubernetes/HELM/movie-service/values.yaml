@@ -1,0 +1,10 @@
+replicaCount: 1
+
+image:
+  repository: patrick35/movieserviceapi
+  tag: "v.${BUILD_ID}.0" # Utilise la variable Jenkins pour le tag
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080 
