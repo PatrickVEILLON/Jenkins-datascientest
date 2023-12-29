@@ -1,117 +1,114 @@
 pipeline {
     environment { 
         DOCKER_ID = "patrick35"
-        DOCKER_IMAGE = "datascientestapi"
-        DOCKER_TAG = "v.${BUILD_ID}.0"
+        DOCKER_IMAGE_CAST = "castserviceapi"
+        DOCKER_IMAGE_MOVIE = "movieserviceapi"
+        KUBECONFIG = credentials("config")
     }
     agent any 
 
     stages {
-        stage('Docker Build') { 
+        stage('Build and Test cast-service') { 
             steps {
                 script {
-                    sh '''
-                    docker rm -f jenkins || true
-                    docker build -t $DOCKER_ID/$DOCKER_IMAGE:$DOCKER_TAG .
-                    sleep 6
-                    '''
-                }
-            }
-        }
-        stage('Docker run') { 
-            steps {
-                script {
-                    sh '''
-                    docker run -d -p 80:80 --name jenkins $DOCKER_ID/$DOCKER_IMAGE:$DOCKER_TAG
-                    sleep 10
-                    '''
+                    dir('cast-service') {
+                        sh 'docker build -t $DOCKER_ID/$DOCKER_IMAGE_CAST:v.${BUILD_ID}.0 .'
+                        sh 'docker run -d -p 8000:8000 --name cast-service-test $DOCKER_ID/$DOCKER_IMAGE_CAST:v.${BUILD_ID}.0'
+                        sh 'sleep 10'
+                        sh 'curl localhost:8000/api/v1/casts'
+                        sh 'docker rm -f cast-service-test'
+                    }
                 }
             }
         }
 
-        stage('Test movie-service') {
+        stage('Build and Test movie-service') { 
             steps {
                 script {
-                    sh '''
-                    curl -f http://localhost:8080/api/v1/movies
-                    '''
+                    dir('movie-service') {
+                        sh 'docker build -t $DOCKER_ID/$DOCKER_IMAGE_MOVIE:v.${BUILD_ID}.0 .'
+                        sh 'docker run -d -p 8000:8000 --name movie-service-test $DOCKER_ID/$DOCKER_IMAGE_MOVIE:v.${BUILD_ID}.0'
+                        sh 'sleep 10'
+                        sh 'curl localhost:8000/api/v1/movies'
+                        sh 'docker rm -f movie-service-test'
+                    }
                 }
             }
         }
 
-        stage('Test cast-service') {
-            steps {
-                script {
-                    sh '''
-                    curl -f http://localhost:8080/api/v1/casts
-                    '''
-                }
-            }
-        }
-
-        stage('Docker Push') { 
+        stage('Docker Push cast-service') { 
             environment {
                 DOCKER_PASS = credentials("DOCKER_HUB_PASS")
             }
             steps {
                 script {
-                    sh '''
-                    docker login -u $DOCKER_ID -p $DOCKER_PASS
-                    docker push $DOCKER_ID/$DOCKER_IMAGE:$DOCKER_TAG
-                    '''
+                    sh 'docker login -u $DOCKER_ID -p $DOCKER_PASS'
+                    sh 'docker push $DOCKER_ID/$DOCKER_IMAGE_CAST:v.${BUILD_ID}.0'
                 }
             }
         }
 
-        stage('Deploiement en dev') {
+        stage('Docker Push movie-service') { 
             environment {
-                KUBECONFIG = credentials("config")
+                DOCKER_PASS = credentials("DOCKER_HUB_PASS")
             }
+            steps {
+                script {
+                    sh 'docker login -u $DOCKER_ID -p $DOCKER_PASS'
+                    sh 'docker push $DOCKER_ID/$DOCKER_IMAGE_MOVIE:v.${BUILD_ID}.0'
+                }
+            }
+        }
+
+        stage('Deployment in dev') {
             steps {
                 script {
                     sh '''
                     rm -Rf .kube
                     mkdir .kube
-                    cat $KUBECONFIG > .kube/config
-                    cp fastapi/values.yaml values.yml
-                    sed -i "s+tag.*+tag: ${DOCKER_TAG}+g" values.yml
-                    helm upgrade --install app fastapi --values=values.yml --namespace dev
+                    echo $KUBECONFIG > .kube/config
+                    cp cast-service/values.yaml cast-values.yml
+                    cp movie-service/values.yaml movie-values.yml
+                    sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" cast-values.yml
+                    sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" movie-values.yml
+                    helm upgrade --install cast-service cast-service --values=cast-values.yml --namespace dev
+                    helm upgrade --install movie-service movie-service --values=movie-values.yml --namespace dev
                     '''
                 }
             }
         }
 
-        stage('Deploiement en staging') {
-            environment {
-                KUBECONFIG = credentials("config")
-            }
+        stage('Deployment in staging') {
             steps {
                 script {
                     sh '''
                     rm -Rf .kube
                     mkdir .kube
-                    cat $KUBECONFIG > .kube/config
-                    cp fastapi/values.yaml values.yml
-                    sed -i "s+tag.*+tag: ${DOCKER_TAG}+g" values.yml
-                    helm upgrade --install app fastapi --values=values.yml --namespace staging
+                    echo $KUBECONFIG > .kube/config
+                    cp cast-service/values.yaml cast-values.yml
+                    cp movie-service/values.yaml movie-values.yml
+                    sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" cast-values.yml
+                    sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" movie-values.yml
+                    helm upgrade --install cast-service cast-service --values=cast-values.yml --namespace staging
+                    helm upgrade --install movie-service movie-service --values=movie-values.yml --namespace staging
                     '''
                 }
             }
         }
 
-        stage('Deploiement en prod') {
-            environment {
-                KUBECONFIG = credentials("config")
-            }
+        stage('Deployment in prod') {
             steps {
                 script {
                     sh '''
                     rm -Rf .kube
                     mkdir .kube
-                    cat $KUBECONFIG > .kube/config
-                    cp fastapi/values.yaml values.yml
-                    sed -i "s+tag.*+tag: ${DOCKER_TAG}+g" values.yml
-                    helm upgrade --install app fastapi --values=values.yml --namespace prod
+                    echo $KUBECONFIG > .kube/config
+                    cp cast-service/values.yaml cast-values.yml
+                    cp movie-service/values.yaml movie-values.yml
+                    sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" cast-values.yml
+                    sed -i "s+tag.*+tag: v.${BUILD_ID}.0+g" movie-values.yml
+                    helm upgrade --install cast-service cast-service --values=cast-values.yml --namespace prod
+                    helm upgrade --install movie-service movie-service --values=movie-values.yml --namespace prod
                     '''
                 }
             }
